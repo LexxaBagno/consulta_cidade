@@ -7,14 +7,23 @@
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .container { max-width: 500px; margin: auto; }
-        .search-container { 
-            position: sticky; top: 10px; z-index: 1000; 
-            background: white; padding: 10px; border-radius: 12px; 
+        
+        .header-tools {
+            position: sticky; top: 10px; z-index: 1000;
+            background: white; padding: 12px; border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px;
-            display: flex; align-items: center; gap: 8px;
         }
-        input { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
-        #btnVoz { background: #eee; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+
+        .search-box { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
+        #btnVoz { background: #eee; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; font-size: 20px; }
+
+        /* Estilo da Lista Suspensa (Select) */
+        select { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #007bff; 
+            background-color: #f9f9f9; font-size: 15px; color: #333; cursor: pointer;
+        }
+
         .card { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; border-left: 6px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .card b { color: #1a237e; display: block; font-size: 1.1em; margin-bottom: 5px; }
         .card p { margin: 3px 0; color: #555; font-size: 0.95em; }
@@ -25,10 +34,44 @@
 <body>
 
 <div class="container">
-    <div class="search-container">
-        <input type="text" id="busca" placeholder="Digite a Cidade/Representante" onkeyup="filtrar()">
-        <button id="btnVoz" onclick="iniciarVoz()">🎙️</button>
+    <div class="header-tools">
+        <div class="search-box">
+            <input type="text" id="busca" placeholder="Digite a Cidade/Representante" onkeyup="filtrar()">
+            <button id="btnVoz" onclick="iniciarVoz()">🎙️</button>
+        </div>
+        
+        <select id="filtroUF" onchange="filtrar()">
+            <option value="">Todos os Estados (Brasil)</option>
+            <option value="AC">Acre (AC)</option>
+            <option value="AL">Alagoas (AL)</option>
+            <option value="AP">Amapá (AP)</option>
+            <option value="AM">Amazonas (AM)</option>
+            <option value="BA">Bahia (BA)</option>
+            <option value="CE">Ceará (CE)</option>
+            <option value="DF">Distrito Federal (DF)</option>
+            <option value="ES">Espírito Santo (ES)</option>
+            <option value="GO">Goiás (GO)</option>
+            <option value="MA">Maranhão (MA)</option>
+            <option value="MT">Mato Grosso (MT)</option>
+            <option value="MS">Mato Grosso do Sul (MS)</option>
+            <option value="MG">Minas Gerais (MG)</option>
+            <option value="PA">Pará (PA)</option>
+            <option value="PB">Paraíba (PB)</option>
+            <option value="PR">Paraná (PR)</option>
+            <option value="PE">Pernambuco (PE)</option>
+            <option value="PI">Piauí (PI)</option>
+            <option value="RJ">Rio de Janeiro (RJ)</option>
+            <option value="RN">Rio Grande do Norte (RN)</option>
+            <option value="RS">Rio Grande do Sul (RS)</option>
+            <option value="RO">Rondônia (RO)</option>
+            <option value="RR">Roraima (RR)</option>
+            <option value="SC">Santa Catarina (SC)</option>
+            <option value="SP">São Paulo (SP)</option>
+            <option value="SE">Sergipe (SE)</option>
+            <option value="TO">Tocantins (TO)</option>
+        </select>
     </div>
+
     <div id="status">A carregar...</div>
     <div id="lista"></div>
 </div>
@@ -36,7 +79,6 @@
 <script src="database.js"></script>
 
 <script>
-    // 'data' é a variável que está dentro do seu database.js
     let dados = typeof data !== 'undefined' ? data : [];
 
     function removerAcentos(texto) {
@@ -44,12 +86,8 @@
     }
 
     window.onload = () => {
-        if (dados.length > 0) {
-            document.getElementById('status').innerText = `${dados.length} registos carregados`;
-            exibir(dados);
-        } else {
-            document.getElementById('status').innerText = "Erro: database.js não encontrado ou vazio.";
-        }
+        exibir(dados);
+        document.getElementById('status').innerText = `${dados.length} registros carregados`;
     };
 
     function exibir(itens) {
@@ -66,47 +104,30 @@
 
     function filtrar() {
         const termo = removerAcentos(document.getElementById('busca').value.toLowerCase());
-        const f = dados.filter(item => 
-            removerAcentos(item.r.toLowerCase()).includes(termo) || 
-            removerAcentos(item.c.toLowerCase()).includes(termo) ||
-            item.u.toLowerCase().includes(termo)
-        );
+        const ufSelecionada = document.getElementById('filtroUF').value;
+        
+        const f = dados.filter(item => {
+            const matchesTexto = removerAcentos(item.r.toLowerCase()).includes(termo) || 
+                                 removerAcentos(item.c.toLowerCase()).includes(termo);
+            const matchesEstado = ufSelecionada === "" || item.u === ufSelecionada;
+            
+            return matchesTexto && matchesEstado;
+        });
+
         exibir(f);
         document.getElementById('status').innerText = `${f.length} encontrados`;
     }
 
     function iniciarVoz() {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Recognition) return alert("Navegador não suporta voz.");
         
-        if (!Recognition) {
-            alert("O seu navegador não suporta pesquisa por voz.");
-            return;
-        }
-
         const recognition = new Recognition();
         recognition.lang = 'pt-BR';
-        
-        document.getElementById('status').innerText = "Ouvindo...";
-        document.getElementById('btnVoz').style.background = "#ffcccc";
-
         recognition.onresult = (event) => {
-            let texto = event.results[0][0].transcript;
-            texto = texto.replace(/\.$/g, ''); // Remove ponto final
-            document.getElementById('busca').value = texto;
+            document.getElementById('busca').value = event.results[0][0].transcript.replace(/\.$/g, '');
             filtrar();
-            document.getElementById('btnVoz').style.background = "#eee";
         };
-
-        recognition.onerror = () => {
-            document.getElementById('status').innerText = "Erro no microfone.";
-            document.getElementById('btnVoz').style.background = "#eee";
-        };
-
-        recognition.onspeechend = () => {
-            recognition.stop();
-            document.getElementById('btnVoz').style.background = "#eee";
-        };
-
         recognition.start();
     }
 </script>
