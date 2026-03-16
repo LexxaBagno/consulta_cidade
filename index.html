@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta Revestir</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        .container { max-width: 500px; margin: auto; }
+        .search-container { 
+            position: sticky; top: 10px; z-index: 1000; 
+            background: white; padding: 10px; border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        input { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
+        #btnVoz { background: #eee; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+        .card { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; border-left: 6px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card b { color: #1a237e; display: block; font-size: 1.1em; margin-bottom: 5px; }
+        .card p { margin: 3px 0; color: #555; font-size: 0.95em; }
+        .badge { float: right; background: #007bff; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.75em; font-weight: bold; }
+        #status { text-align: center; color: #888; font-size: 0.8em; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="search-container">
+        <input type="text" id="busca" placeholder="Digite a Cidade/Representante" onkeyup="filtrar()">
+        <button id="btnVoz" onclick="iniciarVoz()">🎙️</button>
+    </div>
+    <div id="status">A carregar...</div>
+    <div id="lista"></div>
+</div>
+
+<script src="database.js"></script>
+
+<script>
+    // 'data' é a variável que está dentro do seu database.js
+    let dados = typeof data !== 'undefined' ? data : [];
+
+    function removerAcentos(texto) {
+        return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    window.onload = () => {
+        if (dados.length > 0) {
+            document.getElementById('status').innerText = `${dados.length} registos carregados`;
+            exibir(dados);
+        } else {
+            document.getElementById('status').innerText = "Erro: database.js não encontrado ou vazio.";
+        }
+    };
+
+    function exibir(itens) {
+        const lista = document.getElementById('lista');
+        lista.innerHTML = itens.map(item => `
+            <div class="card">
+                <span class="badge">${item.u}</span>
+                <b>${item.r}</b>
+                <p>📍 ${item.c}</p>
+                <p style="color:#999; font-size:0.8em">Região: ${item.i}</p>
+            </div>
+        `).join('');
+    }
+
+    function filtrar() {
+        const termo = removerAcentos(document.getElementById('busca').value.toLowerCase());
+        const f = dados.filter(item => 
+            removerAcentos(item.r.toLowerCase()).includes(termo) || 
+            removerAcentos(item.c.toLowerCase()).includes(termo) ||
+            item.u.toLowerCase().includes(termo)
+        );
+        exibir(f);
+        document.getElementById('status').innerText = `${f.length} encontrados`;
+    }
+
+    function iniciarVoz() {
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!Recognition) {
+            alert("O seu navegador não suporta pesquisa por voz.");
+            return;
+        }
+
+        const recognition = new Recognition();
+        recognition.lang = 'pt-BR';
+        
+        document.getElementById('status').innerText = "Ouvindo...";
+        document.getElementById('btnVoz').style.background = "#ffcccc";
+
+        recognition.onresult = (event) => {
+            let texto = event.results[0][0].transcript;
+            texto = texto.replace(/\.$/g, ''); // Remove ponto final
+            document.getElementById('busca').value = texto;
+            filtrar();
+            document.getElementById('btnVoz').style.background = "#eee";
+        };
+
+        recognition.onerror = () => {
+            document.getElementById('status').innerText = "Erro no microfone.";
+            document.getElementById('btnVoz').style.background = "#eee";
+        };
+
+        recognition.onspeechend = () => {
+            recognition.stop();
+            document.getElementById('btnVoz').style.background = "#eee";
+        };
+
+        recognition.start();
+    }
+</script>
+
+</body>
+</html>
